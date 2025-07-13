@@ -107,6 +107,7 @@ export class GameRoom {
           this.gameState.gameId = payload.gameId; // Set the short gameId from the client
           console.log(`[DO ${this.state.id}] Game created by player1: ${payload.player1Name}. Game ID: ${this.gameState.gameId}`);
           this.broadcast({ type: 'gameCreated', payload: this.gameState.gameId });
+          this.broadcast({ type: 'gameUpdate', payload: this.gameState });
         } else {
           console.log(`[DO ${this.state.id}] Attempt to create game when already created.`);
           this.sendToSocket(this.sessions[socketId], { type: 'gameError', payload: 'Игра уже создана.' });
@@ -123,6 +124,7 @@ export class GameRoom {
           }
           this.gameState.players.player2 = { name: payload.player2Name, answer: null, hasAnswered: false, hasEnded: false, hasClickedNext: false, socketId: socketId };
           console.log(`[DO ${this.state.id}] Player2 ${payload.player2Name} joined game.`);
+          this.broadcast({ type: 'gameUpdate', payload: this.gameState });
         } else {
           console.log(`[DO ${this.state.id}] Attempt to join game that is full or not found.`);
           this.sendToSocket(this.sessions[socketId], { type: 'gameError', payload: 'Игра не найдена или уже заполнена' });
@@ -164,12 +166,18 @@ export class GameRoom {
           const playersArray = Object.values(this.gameState.players);
           if (playersArray.length === 2 && playersArray.every(p => p.hasClickedNext)) {
             console.log(`[DO ${this.state.id}] Both players clicked next.`);
-            if (this.gameState.currentQuestion < this.gameState.questions.length - 1) {
+            // Reset hasClickedNext for both players immediately after both have clicked
+            this.gameState.players.player1.hasClickedNext = false;
+            this.gameState.players.player2.hasClickedNext = false;
+
+            if (this.gameState.currentQuestion === this.gameState.questions.length - 1) {
+              // All questions answered, show final screen
+              this.broadcast({ type: 'showFinalScreen' });
+            } else {
+              // Not the last question, move to the next
               this.gameState.currentQuestion++;
               this.gameState.players.player1.hasAnswered = false;
-              this.gameState.players.player1.hasClickedNext = false;
               this.gameState.players.player2.hasAnswered = false;
-              this.gameState.players.player2.hasClickedNext = false;
 
               this.broadcast({ type: 'gameUpdate', payload: this.gameState });
               this.broadcast({ type: 'showAnswerScreen' });
@@ -232,7 +240,6 @@ export class GameRoom {
     }
 
     await this.state.storage.put("gameState", this.gameState);
-    this.broadcast({ type: 'gameUpdate', payload: this.gameState }); // Send update after every action
   }
 
   sendToSocket(socket, message) {
