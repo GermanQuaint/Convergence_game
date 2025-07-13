@@ -161,7 +161,8 @@ export class GameRoom {
       case 'nextQuestion':
         if (playerKey) {
           this.gameState.players[playerKey].hasClickedNext = true;
-          console.log(`[DO ${this.state.id}] Player ${playerKey} clicked next.`);
+          console.log(`[DO ${self.state.id}] Player ${playerKey} clicked next.`);
+          this.broadcast({ type: 'gameUpdate', payload: this.gameState });
 
           const playersArray = Object.values(this.gameState.players);
           if (playersArray.length === 2 && playersArray.every(p => p.hasClickedNext)) {
@@ -210,7 +211,8 @@ export class GameRoom {
       case 'endGame':
         if (playerKey) {
           this.gameState.players[playerKey].hasEnded = true;
-          console.log(`[DO ${this.state.id}] Player ${playerKey} ended game.`);
+          console.log(`[DO ${self.state.id}] Player ${playerKey} ended game.`);
+          this.broadcast({ type: 'gameUpdate', payload: this.gameState });
 
           const playersArray = Object.values(this.gameState.players);
           if (playersArray.length === 2 && playersArray.every(p => p.hasEnded)) {
