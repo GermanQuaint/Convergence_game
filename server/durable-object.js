@@ -62,7 +62,7 @@ export class GameRoom {
         await this.handleMessage(message, socketId); // Pass socketId to identify the sender
       } catch (err) {
         console.error(`[DO ${this.state.id}] Error parsing message from ${socketId}:`, err);
-        this.sendToSocket(webSocket, { type: "gameError", payload: "Invalid message format" });
+        this.sendToSocket(webSocket, { type: "gameError", payload: `Invalid message format: ${err.message}. Received: ${msg.data}` });
       }
     });
 
@@ -161,7 +161,7 @@ export class GameRoom {
       case 'nextQuestion':
         if (playerKey) {
           this.gameState.players[playerKey].hasClickedNext = true;
-          console.log(`[DO ${self.state.id}] Player ${playerKey} clicked next.`);
+          console.log(`[DO ${this.state.id}] Player ${playerKey} clicked next.`);
           this.broadcast({ type: 'gameUpdate', payload: this.gameState });
 
           const playersArray = Object.values(this.gameState.players);
@@ -211,7 +211,7 @@ export class GameRoom {
       case 'endGame':
         if (playerKey) {
           this.gameState.players[playerKey].hasEnded = true;
-          console.log(`[DO ${self.state.id}] Player ${playerKey} ended game.`);
+          console.log(`[DO ${this.state.id}] Player ${playerKey} ended game.`);
           this.broadcast({ type: 'gameUpdate', payload: this.gameState });
 
           const playersArray = Object.values(this.gameState.players);
