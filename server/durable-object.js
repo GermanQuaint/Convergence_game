@@ -8,7 +8,7 @@ export class GameRoom {
       let stored = await this.state.storage.get("gameState");
       this.gameState = stored || {
         players: {}, // Will store player1 and player2
-        questions: JSON.parse(this.env.QUESTIONS).sort(() => Math.random() - 0.5),
+        questions: JSON.parse(await this.env.QUESTIONS_KV.get('all_questions')).sort(() => Math.random() - 0.5),
         currentQuestion: 0,
         history: [],
         gameId: null, // Will store the short, human-readable game ID

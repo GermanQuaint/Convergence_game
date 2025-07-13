@@ -11,6 +11,10 @@ bindings = [
 binding = "GAME_IDS"
 id = "9f643bf8cede4657aeaecbe7f6cf0141"
 
+[[kv_namespaces]]
+binding = "QUESTIONS_KV"
+id = "b4904e9ae2154961bc1f6d0d55c2d536"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
