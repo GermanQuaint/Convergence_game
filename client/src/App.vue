@@ -112,9 +112,7 @@ export default {
     });
 
     const createGame = (player1Name) => {
-      const newGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      gameId.value = newGameId;
-      const socket = connectWebSocket(newGameId);
+      const socket = connectWebSocket('new-game'); // Подключаемся к Worker для создания новой игры
       socket.onopen = () => {
         getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name } }));
       };
@@ -131,27 +129,27 @@ export default {
     };
 
     const answer = (choice) => {
-      getSocket().send(JSON.stringify({ type: 'answer', payload: { gameId: gameId.value, answer: choice } }));
+      getSocket().send(JSON.stringify({ type: 'answer', payload: { answer: choice } }));
     };
 
     const nextQuestion = () => {
-      getSocket().send(JSON.stringify({ type: 'nextQuestion', payload: { gameId: gameId.value } }));
+      getSocket().send(JSON.stringify({ type: 'nextQuestion' }));
     };
 
     const prevQuestion = () => {
-      getSocket().send(JSON.stringify({ type: 'prevQuestion', payload: { gameId: gameId.value } }));
+      getSocket().send(JSON.stringify({ type: 'prevQuestion' }));
     };
 
     const restartCurrentQuestion = () => {
-      getSocket().send(JSON.stringify({ type: 'restartCurrentQuestion', payload: { gameId: gameId.value } }));
+      getSocket().send(JSON.stringify({ type: 'restartCurrentQuestion' }));
     };
 
     const endGame = () => {
-      getSocket().send(JSON.stringify({ type: 'endGame', payload: { gameId: gameId.value } }));
+      getSocket().send(JSON.stringify({ type: 'endGame' }));
     };
 
     const restartGame = () => {
-      getSocket().send(JSON.stringify({ type: 'restartGame', payload: { gameId: gameId.value } }));
+      getSocket().send(JSON.stringify({ type: 'restartGame' }));
     };
 
     const addSocketListeners = (socket) => {
