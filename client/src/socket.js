@@ -1,12 +1,12 @@
 
-const workerUrl = 'https://convergence-game-server.hermanquaintit.workers.dev';
+const workerUrl = import.meta.env.VITE_API_URL || 'ws://localhost:3000';
 
 let socket;
 
 function connectWebSocket(gameId) {
   const url = new URL(workerUrl);
   url.pathname = `/${gameId}`;
-  url.protocol = 'wss';
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 
   socket = new WebSocket(url.toString());
 
