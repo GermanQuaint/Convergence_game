@@ -8,12 +8,27 @@ export class GameRoom {
       let stored = await this.state.storage.get("gameState");
       this.gameState = stored || {
         players: {}, // Will store player1 and player2
-        questions: JSON.parse(await this.env.QUESTIONS_KV.get('all_questions')).sort(() => Math.random() - 0.5),
+        questions: [], // Initialize as empty, will fetch from KV
         currentQuestion: 0,
         history: [],
         gameId: null, // Will store the short, human-readable game ID
       };
       console.log(`[DO ${this.state.id}] Initialized with state:`, this.gameState);
+
+      // Fetch questions from KV
+      try {
+        console.log(`[DO ${this.state.id}] Attempting to fetch questions from QUESTIONS_KV.`);
+        const questionsJson = await this.env.QUESTIONS_KV.get('all_questions');
+        console.log(`[DO ${this.state.id}] questionsJson from KV:`, questionsJson ? questionsJson.substring(0, 100) + '...' : questionsJson);
+        if (questionsJson) {
+          this.gameState.questions = JSON.parse(questionsJson).sort(() => Math.random() - 0.5);
+          console.log(`[DO ${this.state.id}] Questions loaded from KV. Total questions: ${this.gameState.questions.length}`);
+        } else {
+          console.error(`[DO ${this.state.id}] No questions found in QUESTIONS_KV for key 'all_questions'.`);
+        }
+      } catch (e) {
+        console.error(`[DO ${this.state.id}] Error loading questions from KV:`, e);
+      }
     });
   }
 
@@ -239,4 +254,3 @@ export class GameRoom {
     }
   }
 }
-
