@@ -57,7 +57,7 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue';
-import socket from './socket';
+import { connectWebSocket, getSocket } from './socket';
 import SetupScreen from './components/SetupScreen.vue';
 import AnswerScreen from './components/AnswerScreen.vue';
 import RevealScreen from './components/RevealScreen.vue';
@@ -112,75 +112,84 @@ export default {
     });
 
     const createGame = (player1Name) => {
-      socket.emit('createGame', player1Name);
+      const newGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      gameId.value = newGameId;
+      const socket = connectWebSocket(newGameId);
+      socket.onopen = () => {
+        getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name } }));
+      };
+      addSocketListeners(socket);
     };
 
     const joinGame = ({ gameId: id, player2Name }) => {
       gameId.value = id; // Устанавливаем gameId для присоединяющегося игрока
-      socket.emit('joinGame', { gameId: id, player2Name });
+      const socket = connectWebSocket(id);
+      socket.onopen = () => {
+        getSocket().send(JSON.stringify({ type: 'joinGame', payload: { gameId: id, player2Name } }));
+      };
+      addSocketListeners(socket);
     };
 
     const answer = (choice) => {
-      socket.emit('answer', { gameId: gameId.value, answer: choice });
+      getSocket().send(JSON.stringify({ type: 'answer', payload: { gameId: gameId.value, answer: choice } }));
     };
 
     const nextQuestion = () => {
-      socket.emit('nextQuestion', gameId.value);
+      getSocket().send(JSON.stringify({ type: 'nextQuestion', payload: { gameId: gameId.value } }));
     };
 
     const prevQuestion = () => {
-      socket.emit('prevQuestion', gameId.value);
+      getSocket().send(JSON.stringify({ type: 'prevQuestion', payload: { gameId: gameId.value } }));
     };
 
     const restartCurrentQuestion = () => {
-      socket.emit('restartCurrentQuestion', gameId.value);
+      getSocket().send(JSON.stringify({ type: 'restartCurrentQuestion', payload: { gameId: gameId.value } }));
     };
 
     const endGame = () => {
-      socket.emit('endGame', gameId.value);
+      getSocket().send(JSON.stringify({ type: 'endGame', payload: { gameId: gameId.value } }));
     };
 
     const restartGame = () => {
-      socket.emit('restartGame', gameId.value);
+      getSocket().send(JSON.stringify({ type: 'restartGame', payload: { gameId: gameId.value } }));
     };
 
-    onMounted(() => {
-      socket.on('gameCreated', (id) => {
-        gameId.value = id;
-        // Ждем второго игрока
-      });
+    const addSocketListeners = (socket) => {
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            const { type, payload } = message;
 
-      socket.on('gameUpdate', (state) => {
-        gameState.value = state;
-        // Если второй игрок присоединился, переходим на экран ответа
-        if (Object.keys(state.players).length === 2 && screen.value === 'setup') {
-            screen.value = 'answer';
-        }
-      });
-
-      socket.on('showReveal', ({ questionIndex }) => {
-        revealedQuestionIndex.value = questionIndex;
-        screen.value = 'reveal';
-      });
-
-      socket.on('showAnswerScreen', () => {
-        screen.value = 'answer';
-      });
-
-      socket.on('showFinalScreen', () => {
-        screen.value = 'final';
-      });
-
-      socket.on('showSetupScreen', () => {
-        screen.value = 'setup';
-        gameId.value = null;
-        gameState.value = null;
-      });
-
-      socket.on('gameError', (message) => {
-        alert(message);
-      });
-    });
+            switch (type) {
+                case 'gameCreated':
+                    gameId.value = payload;
+                    break;
+                case 'gameUpdate':
+                    gameState.value = payload;
+                    if (Object.keys(payload.players).length === 2 && screen.value === 'setup') {
+                        screen.value = 'answer';
+                    }
+                    break;
+                case 'showReveal':
+                    revealedQuestionIndex.value = payload.questionIndex;
+                    screen.value = 'reveal';
+                    break;
+                case 'showAnswerScreen':
+                    screen.value = 'answer';
+                    break;
+                case 'showFinalScreen':
+                    screen.value = 'final';
+                    break;
+                case 'showSetupScreen':
+                    screen.value = 'setup';
+                    gameId.value = null;
+                    gameState.value = null;
+                    break;
+                case 'gameError':
+                    alert(payload);
+                    break;
+            }
+        };
+    }
 
     return {
       screen,
