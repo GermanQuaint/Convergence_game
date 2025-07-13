@@ -41,12 +41,12 @@ export class GameRoom {
     this.sessions.push(webSocket);
 
     // Если это первое подключение к новой игре, инициализируем ее
-    if (Object.keys(this.gameState.players).length === 0 && gameIdFromUrl === 'new-game') {
-        this.gameState.gameId = this.gameId; // Устанавливаем gameId для состояния игры
+    if (Object.keys(this.gameState.players).length === 0) {
+        this.gameState.gameId = gameIdFromUrl; // Устанавливаем gameId для состояния игры
         this.gameState.questions = JSON.parse(this.env.QUESTIONS).sort(() => Math.random() - 0.5);
         this.gameState.currentQuestion = 0;
         this.gameState.history = [];
-        this.broadcast({ type: 'gameCreated', payload: this.gameId });
+        this.broadcast({ type: 'gameCreated', payload: this.gameState.gameId });
     }
 
     // Отправляем текущее состояние игры новому подключившемуся клиенту

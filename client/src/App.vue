@@ -63,6 +63,8 @@ import AnswerScreen from './components/AnswerScreen.vue';
 import RevealScreen from './components/RevealScreen.vue';
 import FinalScreen from './components/FinalScreen.vue';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export default {
   name: 'App',
   components: {
@@ -111,19 +113,30 @@ export default {
         return newStats;
     });
 
-    const createGame = (player1Name) => {
-      const socket = connectWebSocket('new-game'); // Подключаемся к Worker для создания новой игры
-      socket.onopen = () => {
-        getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name } }));
-      };
-      addSocketListeners(socket);
+    const createGame = async (player1Name) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/create-game`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+        gameId.value = data.gameId;
+        const socket = connectWebSocket(data.gameId);
+        socket.onopen = () => {
+          getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name } }));
+        };
+        addSocketListeners(socket);
+      } catch (error) {
+        console.error('Error creating game:', error);
+        alert('Не удалось создать игру. Попробуйте еще раз.');
+      }
     };
 
     const joinGame = ({ gameId: id, player2Name }) => {
       gameId.value = id; // Устанавливаем gameId для присоединяющегося игрока
       const socket = connectWebSocket(id);
       socket.onopen = () => {
-        getSocket().send(JSON.stringify({ type: 'joinGame', payload: { gameId: id, player2Name } }));
+        getSocket().send(JSON.stringify({ type: 'joinGame', payload: { player2Name } }));
       };
       addSocketListeners(socket);
     };
