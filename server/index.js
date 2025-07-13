@@ -41,11 +41,7 @@ export default {
             console.log(`[Worker] Found DO ID: ${durableObjectId} for gameId: ${gameId}`);
             let id = env.GAME_ROOM.idFromString(durableObjectId);
             let stub = env.GAME_ROOM.get(id);
-            const response = await stub.fetch(request);
-            // Add CORS headers to WebSocket upgrade response as well
-            const newHeaders = new Headers(response.headers);
-            newHeaders.set('Access-Control-Allow-Origin', '*');
-            return new Response(response.body, { status: response.status, statusText: response.statusText, headers: newHeaders });
+            return stub.fetch(request); // Return the response directly
         } else {
             console.log(`[Worker] Game not found for gameId: ${gameId}`);
             return new Response("Game not found", { status: 404 });
