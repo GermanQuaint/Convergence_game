@@ -78,8 +78,7 @@ export class GameRoom {
 
     switch (type) {
       case 'createGame':
-        // This message should only come from the first player
-        if (!this.gameState.players.player1) {
+        if (Object.keys(this.gameState.players).length === 0) {
           this.gameState.players.player1 = { name: payload.player1Name, answer: null, hasAnswered: false, hasEnded: false, hasClickedNext: false, socketId: socketId };
           this.gameState.gameId = payload.gameId; // Set the short gameId from the client
           this.broadcast({ type: 'gameCreated', payload: this.gameState.gameId });
@@ -89,8 +88,7 @@ export class GameRoom {
         break;
 
       case 'joinGame':
-        // This message should only come from the second player
-        if (!this.gameState.players.player2 && this.gameState.players.player1) {
+        if (Object.keys(this.gameState.players).length === 1 && !this.gameState.players.player2) {
           const existingPlayerNames = Object.values(this.gameState.players).map(p => p.name);
           if (existingPlayerNames.includes(payload.player2Name)) {
             this.sendToSocket(this.sessions[socketId], { type: 'gameError', payload: 'Это имя уже занято в данной игре. Пожалуйста, выберите другое имя.' });

@@ -121,9 +121,9 @@ export default {
         });
         const data = await response.json();
         gameId.value = data.gameId;
-        const socket = connectWebSocket(data.gameId);
+        const socket = connectWebSocket(data.durableObjectId); // Use durableObjectId here
         socket.onopen = () => {
-          getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name } }));
+          getSocket().send(JSON.stringify({ type: 'createGame', payload: { player1Name, gameId: data.gameId } })); // Pass gameId to DO
         };
         addSocketListeners(socket);
       } catch (error) {
@@ -134,11 +134,20 @@ export default {
 
     const joinGame = ({ gameId: id, player2Name }) => {
       gameId.value = id; // Устанавливаем gameId для присоединяющегося игрока
-      const socket = connectWebSocket(id);
-      socket.onopen = () => {
-        getSocket().send(JSON.stringify({ type: 'joinGame', payload: { player2Name } }));
-      };
-      addSocketListeners(socket);
+      // Fetch durableObjectId from KV store
+      fetch(`${API_BASE_URL}/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          const socket = connectWebSocket(data.durableObjectId); // Use durableObjectId here
+          socket.onopen = () => {
+            getSocket().send(JSON.stringify({ type: 'joinGame', payload: { player2Name, gameId: id } })); // Pass gameId to DO
+          };
+          addSocketListeners(socket);
+        })
+        .catch(error => {
+          console.error('Error joining game:', error);
+          alert('Не удалось присоединиться к игре. Проверьте код игры.');
+        });
     };
 
     const answer = (choice) => {
