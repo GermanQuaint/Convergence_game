@@ -1,5 +1,5 @@
 import { GameRoom } from './durable-object.js';
-import questions from './questions.json';
+
 
 export default {
   async fetch(request, env) {
