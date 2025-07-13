@@ -3,15 +3,15 @@ export class GameRoom {
     this.state = state;
     this.env = env;
     this.sessions = {}; // Use an object to store sessions by their unique ID
-    this.gameId = this.state.id.toString(); // Durable Object ID is the game ID
 
     this.state.blockConcurrencyWhile(async () => {
       let stored = await this.state.storage.get("gameState");
       this.gameState = stored || {
-        players: {},
+        players: {}, // Will store player1 and player2
         questions: JSON.parse(this.env.QUESTIONS).sort(() => Math.random() - 0.5),
         currentQuestion: 0,
         history: [],
+        gameId: null, // Will store the short, human-readable game ID
       };
     });
   }
@@ -22,7 +22,7 @@ export class GameRoom {
     if (request.headers.get("Upgrade") === "websocket") {
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
-      await this.handleSession(server); // No need to pass gameIdFromUrl here
+      await this.handleSession(server);
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -48,12 +48,10 @@ export class GameRoom {
 
     webSocket.addEventListener("close", async () => {
       delete this.sessions[socketId];
-      // Remove player association if this socket was linked to a player
+      // Remove player's socketId association on disconnect
       for (const playerKey in this.gameState.players) {
-        if (this.gameState.players[playerKey].socketId === socketId) {
-          // Optionally, mark player as disconnected or remove them
-          // For now, let's just remove the socketId association
-          this.gameState.players[playerKey].socketId = null;
+        if (this.gameState.players[playerKey] && this.gameState.players[playerKey].socketId === socketId) {
+          this.gameState.players[playerKey].socketId = null; // Mark as disconnected
           break;
         }
       }
@@ -70,8 +68,9 @@ export class GameRoom {
     const { type, payload } = message;
 
     let playerKey = null; // 'player1' or 'player2'
+    // Find which player this socketId belongs to
     for (const key in this.gameState.players) {
-      if (this.gameState.players[key].socketId === socketId) {
+      if (this.gameState.players[key] && this.gameState.players[key].socketId === socketId) {
         playerKey = key;
         break;
       }
@@ -79,17 +78,19 @@ export class GameRoom {
 
     switch (type) {
       case 'createGame':
-        if (Object.keys(this.gameState.players).length === 0) {
+        // This message should only come from the first player
+        if (!this.gameState.players.player1) {
           this.gameState.players.player1 = { name: payload.player1Name, answer: null, hasAnswered: false, hasEnded: false, hasClickedNext: false, socketId: socketId };
-          this.gameState.gameId = this.gameId; // Set the gameId for the state
-          this.broadcast({ type: 'gameCreated', payload: this.gameId });
+          this.gameState.gameId = payload.gameId; // Set the short gameId from the client
+          this.broadcast({ type: 'gameCreated', payload: this.gameState.gameId });
         } else {
           this.sendToSocket(this.sessions[socketId], { type: 'gameError', payload: 'Игра уже создана.' });
         }
         break;
 
       case 'joinGame':
-        if (Object.keys(this.gameState.players).length === 1 && !this.gameState.players.player2) {
+        // This message should only come from the second player
+        if (!this.gameState.players.player2 && this.gameState.players.player1) {
           const existingPlayerNames = Object.values(this.gameState.players).map(p => p.name);
           if (existingPlayerNames.includes(payload.player2Name)) {
             this.sendToSocket(this.sessions[socketId], { type: 'gameError', payload: 'Это имя уже занято в данной игре. Пожалуйста, выберите другое имя.' });
